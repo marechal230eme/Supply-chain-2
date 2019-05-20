@@ -1,0 +1,55 @@
+#sudo: required #is required to use docker service in travis
+#
+#language: node_js
+#
+#language: php #can be any language, just php for example
+#
+#services:
+#  - docker # required, but travis uses older version of docker :(
+#
+#install:
+#  - echo "install nothing!" # put your normal pre-testing installs here
+#
+#script:
+#  - echo "no tests!" # put your normal testing scripts here
+#
+#after_success:
+#  - docker --version  # document the version travis is using
+#  - pip install --user awscli # install aws cli w/o sudo
+#  - export PATH=$PATH:$HOME/.local/bin # put aws in the path
+#  - eval $(aws ecr get-login --no-include-email --region eu-west-1) #needs AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY envvars and in ireland (eu-west-1)
+#  - docker build -t supplychain .
+#  - docker tag supplychain:latest 856093160330.dkr.ecr.eu-west-1.amazonaws.com/supplychain:latest
+#  - docker push 856093160330.dkr.ecr.eu-west-1.amazonaws.com/supplychain:latest
+
+sudo: required #is required to use docker service in travis
+
+language: node_js
+
+env:
+ - IMAGE_NAME=856093160330.dkr.ecr.eu-west-1.amazonaws.com/supplychain:1.0-$TRAVIS_BUILD_NUMBER
+services:
+  - docker
+
+script:
+  - npm install
+
+after_success:
+  #- docker --version  # document the version travis is using
+  - pip install --user awscli # install aws cli w/o sudo
+  - export PATH=$PATH:$HOME/.local/bin # put aws in the path
+  - eval $(aws ecr get-login --no-include-email --region eu-west-1) #needs AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY envvars and in ireland (eu-west-1)
+  - docker build -t supplychain .
+  - docker tag supplychain:latest 856093160330.dkr.ecr.eu-west-1.amazonaws.com/supplychain:latest
+  - docker push 856093160330.dkr.ecr.eu-west-1.amazonaws.com/supplychain:latest 
+  -curl -LO https://storage.googleapis.com/kubernetes-release/release/$(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)/bin/linux/amd64/kubectl
+  -chmod +x ./kubectl
+  -sudo mv ./kubectl /usr/local/bin/kubectl 
+  #-curl -o config https:https://github.com/marechal230eme/Supply-chain
+  -mkdir ${HOME}/.kube
+  -cp config ${HOME}/.kube/config
+  -kubectl config set clusters.kubernetes-group-1.certificate-authority-data "$KUBE_CLUSTER_CERTIFICATE"
+  -kubectl config set users.kubernetes-group-1-admin.username "$KUBE_CLIENT_CERTIFICATE"
+  -kubectl config set users.kubernetes-group-1-admin.password "$KUBE_CLIENT_KEY"
+
+  #-kubectl set image deployment/<deplyoment name> <deplyoment name>=<your docker registry>/<image name>:<version>
